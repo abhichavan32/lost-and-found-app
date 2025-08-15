@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lost & Found - Vercel Demo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #10b981;
+        }
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 4rem 0;
+        }
+        .item-card {
+            transition: transform 0.2s ease;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+        }
+        .item-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .badge-lost {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        .badge-found {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold mb-3">
+                <i class="fas fa-search me-3"></i>Lost & Found
+            </h1>
+            <p class="lead mb-4">A modern web application to help reunite people with their lost belongings</p>
+            <div class="d-flex gap-3 justify-content-center">
+                <button class="btn btn-light btn-lg" onclick="showAddItemModal('lost')">
+                    <i class="fas fa-question-circle me-2"></i>Report Lost Item
+                </button>
+                <button class="btn btn-outline-light btn-lg" onclick="showAddItemModal('found')">
+                    <i class="fas fa-check-circle me-2"></i>Report Found Item
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Items Section -->
+    <section class="py-5">
+        <div class="container">
+            <h2 class="text-center mb-5">Recent Items</h2>
+            <div class="row" id="itemsContainer">
+                <!-- Items will be loaded here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Add Item Modal -->
+    <div class="modal fade" id="addItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Item</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addItemForm">
+                        <div class="mb-3">
+                            <label class="form-label">Type</label>
+                            <select class="form-select" id="itemType" required>
+                                <option value="lost">Lost Item</option>
+                                <option value="found">Found Item</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Title</label>
+                            <input type="text" class="form-control" id="itemTitle" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Description</label>
+                            <textarea class="form-control" id="itemDescription" rows="3" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Location</label>
+                            <input type="text" class="form-control" id="itemLocation" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" id="itemCategory" required>
+                                <option value="Electronics">Electronics</option>
+                                <option value="Clothing">Clothing</option>
+                                <option value="Keys">Keys</option>
+                                <option value="Documents">Documents</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="addItem()">Add Item</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">
+                <i class="fas fa-search me-2"></i>Lost & Found Application
+                <br><small>Deployed on Vercel</small>
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentModalType = 'lost';
+        const modal = new bootstrap.Modal(document.getElementById('addItemModal'));
+
+        // Load items on page load
+        document.addEventListener('DOMContentLoaded', loadItems);
+
+        function showAddItemModal(type) {
+            currentModalType = type;
+            document.getElementById('itemType').value = type;
+            modal.show();
+        }
+
+        async function addItem() {
+            const formData = {
+                type: document.getElementById('itemType').value,
+                title: document.getElementById('itemTitle').value,
+                description: document.getElementById('itemDescription').value,
+                location: document.getElementById('itemLocation').value,
+                category: document.getElementById('itemCategory').value
+            };
+
+            try {
+                const response = await fetch('/api/items', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    modal.hide();
+                    document.getElementById('addItemForm').reset();
+                    loadItems();
+                    showAlert('Item added successfully!', 'success');
+                }
+            } catch (error) {
+                showAlert('Error adding item', 'danger');
+            }
+        }
+
+        async function loadItems() {
+            try {
+                const response = await fetch('/api/items');
+                const items = await response.json();
+                displayItems(items);
+            } catch (error) {
+                console.error('Error loading items:', error);
+            }
+        }
+
+        function displayItems(items) {
+            const container = document.getElementById('itemsContainer');
+            container.innerHTML = '';
+
+            items.forEach(item => {
+                const itemHtml = `
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card item-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge ${item.type === 'lost' ? 'badge-lost' : 'badge-found'} text-white">
+                                        ${item.type === 'lost' ? '<i class="fas fa-question-circle me-1"></i>Lost' : '<i class="fas fa-check-circle me-1"></i>Found'}
+                                    </span>
+                                    <small class="text-muted">${item.category}</small>
+                                </div>
+                                <h5 class="card-title">${item.title}</h5>
+                                <p class="card-text">${item.description}</p>
+                                <div class="mt-auto">
+                                    <small class="text-muted">
+                                        <i class="fas fa-map-marker-alt me-1"></i>${item.location}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += itemHtml;
+            });
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '9999';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
