@@ -1,2 +1,1 @@
-# This file ensures the uploads directory is created
-# Image uploads will be stored in this directory
+# Keeps the uploads directory in git without committing uploaded files

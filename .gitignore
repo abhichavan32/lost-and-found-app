@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+
+# Environments
+.env
+.env.*
+.venv/
+venv/
+
+# SQLite / instance data
+instance/
+*.db
+*.sqlite3
+
+# Uploads (keep folder with .gitkeep)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE/editor
+.vscode/
+.idea/
+
+# Replit / build artifacts
+.replit
+*.lock
+
+# Logs
+*.log
