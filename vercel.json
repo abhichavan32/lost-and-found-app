@@ -13,6 +13,12 @@
     }
   ],
   "env": {
-    "FLASK_ENV": "production"
+    "FLASK_ENV": "production",
+    "SESSION_SECRET": "vercel-production-secret-key-2024"
+  },
+  "functions": {
+    "vercel_app.py": {
+      "runtime": "python3.9"
+    }
   }
 }

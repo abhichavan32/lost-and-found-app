@@ -10,44 +10,194 @@
         :root {
             --primary-color: #4f46e5;
             --secondary-color: #10b981;
+            --accent-color: #f59e0b;
         }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
         .hero-section {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
             padding: 4rem 0;
+            position: relative;
+            overflow: hidden;
         }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        
         .item-card {
-            transition: transform 0.2s ease;
+            transition: all 0.3s ease;
             border: 1px solid #e5e7eb;
-            border-radius: 0.75rem;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
+        
         .item-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
         }
+        
         .badge-lost {
             background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-weight: 600;
         }
+        
         .badge-found {
             background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-weight: 600;
+        }
+        
+        .btn-custom {
+            border-radius: 2rem;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .stats-section {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            padding: 3rem 0;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .footer-custom {
+            background: linear-gradient(135deg, #1f2937, #111827);
+            color: white;
+        }
+        
+        .loading-spinner {
+            display: none;
+        }
+        
+        .alert-custom {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
         }
     </style>
 </head>
 <body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-custom fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-search me-2 text-primary"></i>Lost & Found
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                {% if current_user.is_authenticated %}
+                    <span class="navbar-text me-3">
+                        Welcome, {{ current_user.first_name }}!
+                    </span>
+                    <a class="btn btn-outline-primary btn-sm me-2" href="/logout">
+                        <i class="fas fa-sign-out-alt me-1"></i>Logout
+                    </a>
+                {% else %}
+                    <a class="btn btn-outline-primary btn-sm me-2" href="/login">
+                        <i class="fas fa-sign-in-alt me-1"></i>Login
+                    </a>
+                    <a class="btn btn-primary btn-sm" href="/register">
+                        <i class="fas fa-user-plus me-1"></i>Register
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
     <!-- Hero Section -->
-    <section class="hero-section">
-        <div class="container text-center">
-            <h1 class="display-4 fw-bold mb-3">
+    <section class="hero-section" style="margin-top: 76px;">
+        <div class="container text-center hero-content">
+            <h1 class="display-3 fw-bold mb-4">
                 <i class="fas fa-search me-3"></i>Lost & Found
             </h1>
-            <p class="lead mb-4">A modern web application to help reunite people with their lost belongings</p>
-            <div class="d-flex gap-3 justify-content-center">
-                <button class="btn btn-light btn-lg" onclick="showAddItemModal('lost')">
+            <p class="lead mb-5 fs-5">A modern web application to help reunite people with their lost belongings</p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap">
+                <button class="btn btn-light btn-lg btn-custom" onclick="showAddItemModal('lost')">
                     <i class="fas fa-question-circle me-2"></i>Report Lost Item
                 </button>
-                <button class="btn btn-outline-light btn-lg" onclick="showAddItemModal('found')">
+                <button class="btn btn-outline-light btn-lg btn-custom" onclick="showAddItemModal('found')">
                     <i class="fas fa-check-circle me-2"></i>Report Found Item
                 </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="stat-card">
+                        <i class="fas fa-search fa-3x text-primary mb-3"></i>
+                        <div class="stat-number" id="totalItems">0</div>
+                        <p class="text-muted mb-0">Total Items</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="stat-card">
+                        <i class="fas fa-question-circle fa-3x text-warning mb-3"></i>
+                        <div class="stat-number" id="lostItems">0</div>
+                        <p class="text-muted mb-0">Lost Items</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="stat-card">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <div class="stat-number" id="foundItems">0</div>
+                        <p class="text-muted mb-0">Found Items</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -55,68 +205,127 @@
     <!-- Items Section -->
     <section class="py-5">
         <div class="container">
-            <h2 class="text-center mb-5">Recent Items</h2>
+            <div class="d-flex justify-content-between align-items-center mb-5">
+                <h2 class="mb-0">Recent Items</h2>
+                <div class="d-flex gap-2">
+                    <select class="form-select" id="categoryFilter" style="width: auto;">
+                        <option value="">All Categories</option>
+                        {% for category in categories %}
+                        <option value="{{ category }}">{{ category }}</option>
+                        {% endfor %}
+                    </select>
+                    <select class="form-select" id="typeFilter" style="width: auto;">
+                        <option value="">All Types</option>
+                        <option value="lost">Lost</option>
+                        <option value="found">Found</option>
+                    </select>
+                </div>
+            </div>
+            
             <div class="row" id="itemsContainer">
                 <!-- Items will be loaded here -->
+            </div>
+            
+            <div class="text-center mt-4" id="loadingSpinner">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- Add Item Modal -->
     <div class="modal fade" id="addItemModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Add New Item</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="addItemForm">
-                        <div class="mb-3">
-                            <label class="form-label">Type</label>
-                            <select class="form-select" id="itemType" required>
-                                <option value="lost">Lost Item</option>
-                                <option value="found">Found Item</option>
-                            </select>
+                    {% if not current_user.is_authenticated %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Please <a href="/login">login</a> or <a href="/register">register</a> to add items.
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Title</label>
-                            <input type="text" class="form-control" id="itemTitle" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" id="itemDescription" rows="3" required></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Location</label>
-                            <input type="text" class="form-control" id="itemLocation" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Category</label>
-                            <select class="form-select" id="itemCategory" required>
-                                <option value="Electronics">Electronics</option>
-                                <option value="Clothing">Clothing</option>
-                                <option value="Keys">Keys</option>
-                                <option value="Documents">Documents</option>
-                                <option value="Other">Other</option>
-                            </select>
-                        </div>
-                    </form>
+                    {% else %}
+                        <form id="addItemForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Type</label>
+                                    <select class="form-select" id="itemType" required>
+                                        <option value="lost">Lost Item</option>
+                                        <option value="found">Found Item</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Category</label>
+                                    <select class="form-select" id="itemCategory" required>
+                                        {% for category in categories %}
+                                        <option value="{{ category }}">{{ category }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Title</label>
+                                <input type="text" class="form-control" id="itemTitle" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" id="itemDescription" rows="3" required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Location</label>
+                                <input type="text" class="form-control" id="itemLocation" required>
+                            </div>
+                        </form>
+                    {% endif %}
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="addItem()">Add Item</button>
+                    {% if current_user.is_authenticated %}
+                        <button type="button" class="btn btn-primary" onclick="addItem()">
+                            <i class="fas fa-plus me-2"></i>Add Item
+                        </button>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Footer -->
-    <footer class="bg-dark text-light py-4 mt-5">
+    <footer class="footer-custom py-5 mt-5">
         <div class="container text-center">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="mb-3">
+                        <i class="fas fa-search me-2"></i>Lost & Found Application
+                    </h5>
+                    <p class="text-muted">Helping people reunite with their belongings since 2024</p>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="mb-3">Quick Links</h6>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="#" class="text-light text-decoration-none">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                        <a href="#" class="text-light text-decoration-none">
+                            <i class="fas fa-info-circle me-1"></i>About
+                        </a>
+                        <a href="#" class="text-light text-decoration-none">
+                            <i class="fas fa-envelope me-1"></i>Contact
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-4">
             <p class="mb-0">
-                <i class="fas fa-search me-2"></i>Lost & Found Application
-                <br><small>Deployed on Vercel</small>
+                <small class="text-muted">
+                    <i class="fas fa-code me-1"></i>Deployed on Vercel
+                    <span class="mx-2">•</span>
+                    <i class="fas fa-heart me-1 text-danger"></i>Built with Flask
+                </small>
             </p>
         </div>
     </footer>
@@ -127,7 +336,10 @@
         const modal = new bootstrap.Modal(document.getElementById('addItemModal'));
 
         // Load items on page load
-        document.addEventListener('DOMContentLoaded', loadItems);
+        document.addEventListener('DOMContentLoaded', function() {
+            loadItems();
+            updateStats();
+        });
 
         function showAddItemModal(type) {
             currentModalType = type;
@@ -157,7 +369,11 @@
                     modal.hide();
                     document.getElementById('addItemForm').reset();
                     loadItems();
+                    updateStats();
                     showAlert('Item added successfully!', 'success');
+                } else {
+                    const error = await response.json();
+                    showAlert(error.error || 'Error adding item', 'danger');
                 }
             } catch (error) {
                 showAlert('Error adding item', 'danger');
@@ -166,11 +382,15 @@
 
         async function loadItems() {
             try {
+                document.getElementById('loadingSpinner').style.display = 'block';
                 const response = await fetch('/api/items');
                 const items = await response.json();
                 displayItems(items);
             } catch (error) {
                 console.error('Error loading items:', error);
+                showAlert('Error loading items', 'danger');
+            } finally {
+                document.getElementById('loadingSpinner').style.display = 'none';
             }
         }
 
@@ -178,22 +398,37 @@
             const container = document.getElementById('itemsContainer');
             container.innerHTML = '';
 
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center py-5">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No items found</h5>
+                        <p class="text-muted">Be the first to add a lost or found item!</p>
+                    </div>
+                `;
+                return;
+            }
+
             items.forEach(item => {
                 const itemHtml = `
                     <div class="col-md-6 col-lg-4 mb-4">
                         <div class="card item-card h-100">
                             <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <span class="badge ${item.type === 'lost' ? 'badge-lost' : 'badge-found'} text-white">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <span class="badge ${item.type === 'lost' ? 'badge-lost' : 'badge-found'}">
                                         ${item.type === 'lost' ? '<i class="fas fa-question-circle me-1"></i>Lost' : '<i class="fas fa-check-circle me-1"></i>Found'}
                                     </span>
                                     <small class="text-muted">${item.category}</small>
                                 </div>
-                                <h5 class="card-title">${item.title}</h5>
-                                <p class="card-text">${item.description}</p>
+                                <h5 class="card-title fw-bold">${item.title}</h5>
+                                <p class="card-text text-muted">${item.description}</p>
                                 <div class="mt-auto">
                                     <small class="text-muted">
                                         <i class="fas fa-map-marker-alt me-1"></i>${item.location}
+                                    </small>
+                                    <br>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar me-1"></i>${new Date(item.date_posted).toLocaleDateString()}
                                     </small>
                                 </div>
                             </div>
@@ -204,13 +439,22 @@
             });
         }
 
+        function updateStats() {
+            fetch('/api/items')
+                .then(response => response.json())
+                .then(items => {
+                    document.getElementById('totalItems').textContent = items.length;
+                    document.getElementById('lostItems').textContent = items.filter(item => item.type === 'lost').length;
+                    document.getElementById('foundItems').textContent = items.filter(item => item.type === 'found').length;
+                })
+                .catch(error => console.error('Error updating stats:', error));
+        }
+
         function showAlert(message, type) {
             const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-            alertDiv.style.top = '20px';
-            alertDiv.style.right = '20px';
-            alertDiv.style.zIndex = '9999';
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show alert-custom`;
             alertDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
                 ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
@@ -218,7 +462,33 @@
             
             setTimeout(() => {
                 alertDiv.remove();
-            }, 3000);
+            }, 5000);
+        }
+
+        // Filter functionality
+        document.getElementById('categoryFilter').addEventListener('change', filterItems);
+        document.getElementById('typeFilter').addEventListener('change', filterItems);
+
+        function filterItems() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            
+            fetch('/api/items')
+                .then(response => response.json())
+                .then(items => {
+                    let filteredItems = items;
+                    
+                    if (categoryFilter) {
+                        filteredItems = filteredItems.filter(item => item.category === categoryFilter);
+                    }
+                    
+                    if (typeFilter) {
+                        filteredItems = filteredItems.filter(item => item.type === typeFilter);
+                    }
+                    
+                    displayItems(filteredItems);
+                })
+                .catch(error => console.error('Error filtering items:', error));
         }
     </script>
 </body>
