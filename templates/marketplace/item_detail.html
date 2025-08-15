@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}{{ item.title }} - Marketplace{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <!-- Item Image -->
+        <div class="col-md-6 mb-4">
+            {% if item.image %}
+            <img src="{{ url_for('static', filename='uploads/' + item.image) }}" class="img-fluid rounded" alt="{{ item.title }}">
+            {% else %}
+            <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" style="height: 400px;">
+                <i class="fas {% if item.type == 'book' %}fa-book{% else %}fa-file-alt{% endif %} fa-5x"></i>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Item Details -->
+        <div class="col-md-6">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('marketplace') }}">Marketplace</a></li>
+                    <li class="breadcrumb-item active">{{ item.title }}</li>
+                </ol>
+            </nav>
+
+            <h1 class="mb-3">{{ item.title }}</h1>
+
+            <div class="mb-4">
+                <span class="h2 text-primary">${{ "%.2f"|format(item.price) }}</span>
+                {% if item.status == 'sold' %}
+                <span class="badge bg-danger ms-2">Sold</span>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <h5>Details</h5>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas {% if item.type == 'book' %}fa-book{% else %}fa-file-alt{% endif %} me-2"></i>
+                        <strong>Type:</strong> {{ item.type|title }}
+                    </li>
+                    {% if item.type == 'book' %}
+                    {% if item.author %}
+                    <li class="mb-2">
+                        <i class="fas fa-user me-2"></i>
+                        <strong>Author:</strong> {{ item.author }}
+                    </li>
+                    {% endif %}
+                    {% if item.condition %}
+                    <li class="mb-2">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Condition:</strong> {{ item.condition|replace('_', ' ')|title }}
+                    </li>
+                    {% endif %}
+                    {% endif %}
+                    {% if item.subject %}
+                    <li class="mb-2">
+                        <i class="fas fa-graduation-cap me-2"></i>
+                        <strong>Subject:</strong> {{ item.subject }}
+                    </li>
+                    {% endif %}
+                    <li class="mb-2">
+                        <i class="fas fa-clock me-2"></i>
+                        <strong>Listed:</strong> {{ item.created_at|timeago }}
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-user me-2"></i>
+                        <strong>Seller:</strong> {{ item.seller.username }}
+                    </li>
+                </ul>
+            </div>
+
+            <div class="mb-4">
+                <h5>Description</h5>
+                <p>{{ item.description }}</p>
+            </div>
+
+            {% if current_user.is_authenticated and item.status == 'available' %}
+                {% if current_user.id != item.seller_id %}
+                <form action="{{ url_for('buy_item', item_id=item.id) }}" method="POST">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-shopping-cart me-2"></i>Buy Now
+                        </button>
+                        <div class="text-muted text-center">
+                            <small>Your wallet balance: ${{ "%.2f"|format(current_user.wallet_balance) }}</small>
+                        </div>
+                    </div>
+                </form>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>This is your listing
+                </div>
+                {% endif %}
+            {% elif not current_user.is_authenticated %}
+            <div class="alert alert-warning">
+                <i class="fas fa-lock me-2"></i>Please <a href="{{ url_for('login') }}">log in</a> to purchase this item
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if item.seller.market_items|length > 1 %}
+    <!-- More from Seller -->
+    <div class="mt-5">
+        <h3 class="mb-4">More from this Seller</h3>
+        <div class="row row-cols-1 row-cols-md-4 g-4">
+            {% for other_item in item.seller.market_items %}
+            {% if other_item.id != item.id and other_item.status == 'available' %}
+            <div class="col">
+                <div class="card h-100">
+                    {% if other_item.image %}
+                    <img src="{{ url_for('static', filename='uploads/' + other_item.image) }}" class="card-img-top" alt="{{ other_item.title }}">
+                    {% else %}
+                    <div class="card-img-top bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
+                        <i class="fas {% if other_item.type == 'book' %}fa-book{% else %}fa-file-alt{% endif %} fa-3x"></i>
+                    </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ other_item.title }}</h5>
+                        <p class="card-text">${{ "%.2f"|format(other_item.price) }}</p>
+                        <a href="{{ url_for('marketplace_item', item_id=other_item.id) }}" class="btn btn-outline-primary stretched-link">View Details</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

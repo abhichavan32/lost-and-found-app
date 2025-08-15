@@ -2,10 +2,10 @@
 
 {% block content %}
 <!-- Hero Section -->
-<section class="bg-primary text-white py-5">
+<section class="bg-gradient text-white py-5" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;">
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-6">
+            <div class="col-lg-6 fade-in-up">
                 <h1 class="display-4 fw-bold mb-3">Lost & Found</h1>
                 <p class="lead mb-4">Help reunite people with their lost belongings. Post what you've lost or found, and connect with others in your community.</p>
                 <div class="d-flex gap-3">
@@ -17,7 +17,7 @@
                     </a>
                 </div>
             </div>
-            <div class="col-lg-6 text-center">
+            <div class="col-lg-6 text-center slide-in-right">
                 <i class="fas fa-search display-1 text-white-50"></i>
             </div>
         </div>
@@ -25,36 +25,39 @@
 </section>
 
 <!-- Quick Stats -->
-<section class="py-4 bg-light">
+<section class="py-5 bg-light">
     <div class="container">
         <div class="row text-center">
-            <div class="col-md-4">
-                <div class="card border-0 bg-transparent">
+            <div class="col-md-4 mb-4">
+                <div class="stats-card border-0 bg-transparent">
                     <div class="card-body">
-                        <i class="fas fa-question-circle text-danger fa-2x mb-2"></i>
-                        <h5 class="card-title">Lost Items</h5>
-                        <p class="card-text">{{ recent_lost|length }} recent posts</p>
-                        <a href="{{ url_for('browse_items', item_type='lost') }}" class="btn btn-outline-danger">Browse Lost Items</a>
+                        <i class="fas fa-question-circle text-danger fa-2x mb-3"></i>
+                        <h5 class="card-title text-primary">Lost Items</h5>
+                        <div class="stats-number text-danger">{{ recent_lost|length }}</div>
+                        <div class="stats-label">recent posts</div>
+                        <a href="{{ url_for('browse_items', item_type='lost') }}" class="btn btn-outline-danger mt-3">Browse Lost Items</a>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card border-0 bg-transparent">
+            <div class="col-md-4 mb-4">
+                <div class="stats-card border-0 bg-transparent">
                     <div class="card-body">
-                        <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
-                        <h5 class="card-title">Found Items</h5>
-                        <p class="card-text">{{ recent_found|length }} recent posts</p>
-                        <a href="{{ url_for('browse_items', item_type='found') }}" class="btn btn-outline-success">Browse Found Items</a>
+                        <i class="fas fa-check-circle text-success fa-2x mb-3"></i>
+                        <h5 class="card-title text-primary">Found Items</h5>
+                        <div class="stats-number text-success">{{ recent_found|length }}</div>
+                        <div class="stats-label">recent posts</div>
+                        <a href="{{ url_for('browse_items', item_type='found') }}" class="btn btn-outline-success mt-3">Browse Found Items</a>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card border-0 bg-transparent">
+            <div class="col-md-4 mb-4">
+                <div class="stats-card border-0 bg-transparent">
                     <div class="card-body">
-                        <i class="fas fa-handshake text-info fa-2x mb-2"></i>
-                        <h5 class="card-title">Success Stories</h5>
-                        <p class="card-text">Items reunited daily</p>
-                        <a href="#how-it-works" class="btn btn-outline-info">Learn More</a>
+                        <i class="fas fa-handshake text-info fa-2x mb-3"></i>
+                        <h5 class="card-title text-primary">Success Stories</h5>
+                        <div class="stats-number text-info">Daily</div>
+                        <div class="stats-label">items reunited</div>
+                        <a href="#how-it-works" class="btn btn-outline-info mt-3">Learn More</a>
                     </div>
                 </div>
             </div>
@@ -76,7 +79,7 @@
                 <div class="row">
                     {% for item in recent_lost %}
                     <div class="col-md-4 mb-4">
-                        <div class="card h-100">
+                        <div class="card h-100 item-card">
                             {% if item.image %}
                             <img src="{{ url_for('static', filename='uploads/' + item.image) }}" 
                                  class="card-img-top" style="height: 200px; object-fit: cover;" 
@@ -90,15 +93,20 @@
                                 <h5 class="card-title">{{ item.title }}</h5>
                                 <p class="card-text">{{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}</p>
                                 <div class="mt-auto">
-                                    <small class="text-muted">
-                                        <i class="fas fa-map-marker-alt me-1"></i>{{ item.location }}
-                                    </small>
-                                    <br>
-                                    <small class="text-muted">
-                                        <i class="fas fa-calendar me-1"></i>{{ item.date_posted.strftime('%b %d, %Y') }}
-                                    </small>
+                                    <div class="item-meta">
+                                        <div class="item-location">
+                                            <i class="fas fa-map-marker-alt me-1"></i>{{ item.location }}
+                                        </div>
+                                        <div class="item-date">
+                                            <i class="fas fa-calendar me-1"></i>{{ item.date_posted.strftime('%b %d, %Y') }}
+                                        </div>
+                                    </div>
                                 </div>
-                                <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn btn-danger mt-2">View Details</a>
+                            </div>
+                            <div class="card-footer bg-transparent border-0">
+                                <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn btn-primary w-100">
+                                    <i class="fas fa-eye me-2"></i>View Details
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -119,7 +127,7 @@
                 <div class="row">
                     {% for item in recent_found %}
                     <div class="col-md-4 mb-4">
-                        <div class="card h-100">
+                        <div class="card h-100 item-card">
                             {% if item.image %}
                             <img src="{{ url_for('static', filename='uploads/' + item.image) }}" 
                                  class="card-img-top" style="height: 200px; object-fit: cover;" 
@@ -133,15 +141,20 @@
                                 <h5 class="card-title">{{ item.title }}</h5>
                                 <p class="card-text">{{ item.description[:100] }}{% if item.description|length > 100 %}...{% endif %}</p>
                                 <div class="mt-auto">
-                                    <small class="text-muted">
-                                        <i class="fas fa-map-marker-alt me-1"></i>{{ item.location }}
-                                    </small>
-                                    <br>
-                                    <small class="text-muted">
-                                        <i class="fas fa-calendar me-1"></i>{{ item.date_posted.strftime('%b %d, %Y') }}
-                                    </small>
+                                    <div class="item-meta">
+                                        <div class="item-location">
+                                            <i class="fas fa-map-marker-alt me-1"></i>{{ item.location }}
+                                        </div>
+                                        <div class="item-date">
+                                            <i class="fas fa-calendar me-1"></i>{{ item.date_posted.strftime('%b %d, %Y') }}
+                                        </div>
+                                    </div>
                                 </div>
-                                <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn btn-success mt-2">View Details</a>
+                            </div>
+                            <div class="card-footer bg-transparent border-0">
+                                <a href="{{ url_for('item_detail', item_id=item.id) }}" class="btn btn-success w-100">
+                                    <i class="fas fa-eye me-2"></i>View Details
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -151,63 +164,72 @@
         </div>
         {% endif %}
 
-        <!-- Empty State -->
-        {% if not recent_lost and not recent_found %}
-        <div class="text-center py-5">
-            <i class="fas fa-search text-muted fa-5x mb-4"></i>
-            <h3 class="text-muted">No items posted yet</h3>
-            <p class="text-muted mb-4">Be the first to post a lost or found item!</p>
-            <div class="d-flex justify-content-center gap-3">
-                <a href="{{ url_for('post_item_form', item_type='lost') }}" class="btn btn-danger btn-lg">
-                    <i class="fas fa-question-circle me-2"></i>Report Lost Item
-                </a>
-                <a href="{{ url_for('post_item_form', item_type='found') }}" class="btn btn-success btn-lg">
-                    <i class="fas fa-check-circle me-2"></i>Report Found Item
-                </a>
+        <!-- How It Works -->
+        <div class="row" id="how-it-works">
+            <div class="col-12">
+                <div class="text-center mb-5">
+                    <h2 class="text-primary">How It Works</h2>
+                    <p class="lead text-muted">Simple steps to help reunite people with their belongings</p>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-plus fa-2x"></i>
+                                </div>
+                                <h5 class="card-title">1. Post an Item</h5>
+                                <p class="card-text">Report a lost item or post something you found. Include details and photos for better chances of a match.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-search fa-2x"></i>
+                                </div>
+                                <h5 class="card-title">2. Search & Browse</h5>
+                                <p class="card-text">Search through lost and found items in your area. Use filters to narrow down your search.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-handshake fa-2x"></i>
+                                </div>
+                                <h5 class="card-title">3. Connect & Reunite</h5>
+                                <p class="card-text">Contact the person who posted the item or respond to inquiries about your post.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        {% endif %}
-    </div>
-</section>
 
-<!-- How It Works -->
-<section id="how-it-works" class="py-5 bg-light">
-    <div class="container">
-        <div class="text-center mb-5">
-            <h2>How It Works</h2>
-            <p class="lead">Simple steps to help reunite lost items with their owners</p>
-        </div>
-        <div class="row">
-            <div class="col-md-4 text-center mb-4">
-                <div class="card border-0 bg-transparent">
-                    <div class="card-body">
-                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
-                            <span class="fs-2 fw-bold">1</span>
+        <!-- Call to Action -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card bg-gradient text-center py-5" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;">
+                    <div class="card-body text-white">
+                        <h3 class="mb-3">Ready to Help?</h3>
+                        <p class="lead mb-4">Join our community and help reunite people with their lost belongings.</p>
+                        <div class="d-flex gap-3 justify-content-center">
+                            {% if current_user.is_authenticated %}
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-light btn-lg">
+                                <i class="fas fa-tachometer-alt me-2"></i>Go to Dashboard
+                            </a>
+                            {% else %}
+                            <a href="{{ url_for('register') }}" class="btn btn-light btn-lg">
+                                <i class="fas fa-user-plus me-2"></i>Get Started
+                            </a>
+                            <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                            </a>
+                            {% endif %}
                         </div>
-                        <h5>Post Your Item</h5>
-                        <p>Lost something? Found something? Post it with a detailed description and photo.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 text-center mb-4">
-                <div class="card border-0 bg-transparent">
-                    <div class="card-body">
-                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
-                            <span class="fs-2 fw-bold">2</span>
-                        </div>
-                        <h5>Browse & Search</h5>
-                        <p>Look through posted items and use our search and filter features to find matches.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 text-center mb-4">
-                <div class="card border-0 bg-transparent">
-                    <div class="card-body">
-                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px;">
-                            <span class="fs-2 fw-bold">3</span>
-                        </div>
-                        <h5>Connect & Reunite</h5>
-                        <p>Found a match? Contact the poster directly to arrange the return of the item.</p>
                     </div>
                 </div>
             </div>

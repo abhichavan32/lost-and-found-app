@@ -2,33 +2,39 @@ import os
 import logging
 from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import DeclarativeBase
+from flask_migrate import Migrate
 import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
+# Remove this Base class as it's not needed
 class Base(DeclarativeBase):
     pass
-
-db = SQLAlchemy(model_class=Base)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 
 # Database configuration
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///lost_and_found.db")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
 }
 
-# Initialize extensions
+# Move the db import before any model imports
+from models import db
 db.init_app(app)
+
+# Then import the models
+from models import User, Item, Notification, MarketItem, Order, Payment
+
+# Initialize Flask-Migrate
+migrate = Migrate(app, db)
 
 # Flask-Login setup
 login_manager = LoginManager()
@@ -52,9 +58,6 @@ CATEGORIES = [
     'Electronics', 'Clothing', 'Jewelry', 'Keys', 'Documents', 
     'Bags', 'Books', 'Pets', 'Vehicles', 'Sports Equipment', 'Other'
 ]
-
-# Import models after app initialization to avoid circular imports
-from models import User, Item, Notification
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -376,6 +379,115 @@ def delete_item(item_id):
     
     return redirect(url_for('dashboard'))
 
+# Marketplace routes
+@app.route('/marketplace')
+def marketplace():
+    items = MarketItem.query.filter_by(status='available').order_by(MarketItem.created_at.desc()).all()
+    return render_template('marketplace/index.html', items=items)
+
+@app.route('/marketplace/sell', methods=['GET', 'POST'])
+@login_required
+def sell_item():
+    if request.method == 'POST':
+        try:
+            # Handle file upload
+            image_filename = None
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and file.filename != '' and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
+                    filename = timestamp + filename
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    image_filename = filename
+            
+            # Create market item
+            item = MarketItem(
+                title=request.form['title'].strip(),
+                description=request.form['description'].strip(),
+                price=float(request.form['price']),
+                type=request.form['type'],  # 'book' or 'notes'
+                condition=request.form.get('condition'),
+                subject=request.form.get('subject'),
+                author=request.form.get('author'),
+                image=image_filename,
+                seller_id=current_user.id
+            )
+            
+            db.session.add(item)
+            db.session.commit()
+            
+            flash('Item listed successfully!', 'success')
+            return redirect(url_for('marketplace_item', item_id=item.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f"Error listing item: {str(e)}")
+            flash('An error occurred while listing the item. Please try again.', 'error')
+    
+    return render_template('marketplace/sell.html')
+
+@app.route('/marketplace/item/<int:item_id>')
+def marketplace_item(item_id):
+    item = MarketItem.query.get_or_404(item_id)
+    return render_template('marketplace/item_detail.html', item=item)
+
+@app.route('/marketplace/buy/<int:item_id>', methods=['POST'])
+@login_required
+def buy_item(item_id):
+    item = MarketItem.query.get_or_404(item_id)
+    
+    if item.status != 'available':
+        flash('This item is no longer available.', 'error')
+        return redirect(url_for('marketplace_item', item_id=item_id))
+    
+    if item.seller_id == current_user.id:
+        flash('You cannot buy your own item.', 'error')
+        return redirect(url_for('marketplace_item', item_id=item_id))
+    
+    if current_user.wallet_balance < item.price:
+        flash('Insufficient wallet balance.', 'error')
+        return redirect(url_for('marketplace_item', item_id=item_id))
+    
+    try:
+        # Create order
+        order = Order(
+            item_id=item.id,
+            buyer_id=current_user.id,
+            seller_id=item.seller_id,
+            amount=item.price,
+            status='completed'
+        )
+        
+        # Create payment
+        payment = Payment(
+            order=order,
+            amount=item.price,
+            payment_method='wallet',
+            status='completed',
+            completed_at=datetime.utcnow()
+        )
+        
+        # Update wallet balances
+        current_user.wallet_balance -= item.price
+        item.seller.wallet_balance += item.price
+        
+        # Update item status
+        item.status = 'sold'
+        
+        db.session.add(order)
+        db.session.add(payment)
+        db.session.commit()
+        
+        flash('Purchase successful!', 'success')
+        return redirect(url_for('marketplace_item', item_id=item_id))
+        
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error processing purchase: {str(e)}")
+        flash('An error occurred while processing the purchase. Please try again.', 'error')
+        return redirect(url_for('marketplace_item', item_id=item_id))
+
 @app.route('/search')
 def search():
     query = request.args.get('q', '').strip()
@@ -398,10 +510,6 @@ def search():
                          item_type='search',
                          categories=CATEGORIES,
                          search_query=query)
-
-# Create database tables
-with app.app_context():
-    db.create_all()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

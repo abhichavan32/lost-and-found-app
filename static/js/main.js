@@ -307,3 +307,293 @@ window.LostAndFound = {
     isValidEmail,
     validateForm
 };
+
+// Chat Bot Functionality
+class ChatBot {
+    constructor() {
+        this.isOpen = false;
+        this.isTyping = false;
+        this.webhookUrl = 'http://localhost:5678/webhook/d00e7414-5d87-46fe-af20-a408c62e3e23/chat';
+        this.init();
+    }
+
+    init() {
+        this.bindEvents();
+        this.hideBadge();
+    }
+
+    bindEvents() {
+        // Toggle chat bot
+        const toggle = document.getElementById('chatBotToggle');
+        if (toggle) {
+            toggle.addEventListener('click', () => this.toggleChat());
+        }
+
+        // Close chat bot
+        const close = document.getElementById('chatBotClose');
+        if (close) {
+            close.addEventListener('click', () => this.closeChat());
+        }
+
+        // Send message
+        const send = document.getElementById('chatBotSend');
+        if (send) {
+            send.addEventListener('click', () => this.sendMessage());
+        }
+
+        // Input enter key
+        const input = document.getElementById('chatBotInput');
+        if (input) {
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.sendMessage();
+                }
+            });
+        }
+
+        // Touch events for mobile
+        if (toggle) {
+            toggle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                this.toggleChat();
+            });
+        }
+    }
+
+    toggleChat() {
+        const window = document.getElementById('chatBotWindow');
+        if (this.isOpen) {
+            this.closeChat();
+        } else {
+            this.openChat();
+        }
+    }
+
+    openChat() {
+        const window = document.getElementById('chatBotWindow');
+        const input = document.getElementById('chatBotInput');
+        
+        if (window && input) {
+            window.style.display = 'flex';
+            this.isOpen = true;
+            input.focus();
+            
+            // Add open animation class
+            window.classList.add('chat-open');
+            
+            // Hide badge when chat is opened
+            this.hideBadge();
+        }
+    }
+
+    closeChat() {
+        const window = document.getElementById('chatBotWindow');
+        if (window) {
+            window.style.display = 'none';
+            this.isOpen = false;
+            window.classList.remove('chat-open');
+        }
+    }
+
+    async sendMessage() {
+        const input = document.getElementById('chatBotInput');
+        const messages = document.getElementById('chatBotMessages');
+        const sendButton = document.getElementById('chatBotSend');
+        
+        if (!input || !messages || !sendButton) return;
+        
+        const message = input.value.trim();
+        if (!message) return;
+        
+        // Disable input and send button
+        input.disabled = true;
+        sendButton.disabled = true;
+        
+        // Add user message
+        this.addMessage(message, 'user');
+        input.value = '';
+        
+        // Show typing indicator
+        this.showTyping();
+        
+        try {
+            // Send message to webhook
+            const response = await this.callWebhook(message);
+            
+            // Hide typing indicator
+            this.hideTyping();
+            
+            // Add bot response
+            if (response && response.reply) {
+                this.addMessage(response.reply, 'bot');
+            } else {
+                this.addMessage('I apologize, but I\'m having trouble processing your request right now. Please try again later.', 'bot');
+            }
+        } catch (error) {
+            console.error('Chat bot error:', error);
+            this.hideTyping();
+            this.addMessage('I\'m sorry, but I\'m experiencing technical difficulties. Please try again later.', 'bot');
+        } finally {
+            // Re-enable input and send button
+            input.disabled = false;
+            sendButton.disabled = false;
+            input.focus();
+        }
+    }
+
+    async callWebhook(message) {
+        try {
+            const response = await fetch(this.webhookUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message,
+                    timestamp: new Date().toISOString(),
+                    user_agent: navigator.userAgent,
+                    session_id: this.getSessionId()
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Webhook call failed:', error);
+            throw error;
+        }
+    }
+
+    addMessage(content, type) {
+        const messages = document.getElementById('chatBotMessages');
+        if (!messages) return;
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${type}-message`;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        
+        if (type === 'bot') {
+            contentDiv.innerHTML = `<i class="fas fa-robot me-2"></i>${this.escapeHtml(content)}`;
+        } else {
+            contentDiv.textContent = content;
+        }
+        
+        messageDiv.appendChild(contentDiv);
+        messages.appendChild(messageDiv);
+        
+        // Scroll to bottom
+        messages.scrollTop = messages.scrollHeight;
+        
+        // Auto-close chat after bot response on mobile
+        if (type === 'bot' && window.innerWidth <= 576) {
+            setTimeout(() => {
+                if (this.isOpen) {
+                    this.closeChat();
+                }
+            }, 3000);
+        }
+    }
+
+    showTyping() {
+        const messages = document.getElementById('chatBotMessages');
+        if (!messages) return;
+        
+        this.isTyping = true;
+        
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'chat-message bot-message';
+        typingDiv.id = 'typingIndicator';
+        
+        typingDiv.innerHTML = `
+            <div class="typing-indicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        `;
+        
+        messages.appendChild(typingDiv);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    hideTyping() {
+        const typingIndicator = document.getElementById('typingIndicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+        this.isTyping = false;
+    }
+
+    showBadge() {
+        const badge = document.querySelector('.chat-bot-badge');
+        if (badge) {
+            badge.style.display = 'flex';
+        }
+    }
+
+    hideBadge() {
+        const badge = document.querySelector('.chat-bot-badge');
+        if (badge) {
+            badge.style.display = 'none';
+        }
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    getSessionId() {
+        let sessionId = sessionStorage.getItem('chatBotSessionId');
+        if (!sessionId) {
+            sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            sessionStorage.setItem('chatBotSessionId', sessionId);
+        }
+        return sessionId;
+    }
+
+    // Method to trigger chat bot programmatically
+    trigger() {
+        if (!this.isOpen) {
+            this.openChat();
+        }
+    }
+}
+
+// Initialize chat bot when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize existing features
+    initializeTooltips();
+    initializeImagePreview();
+    initializeFormValidation();
+    initializeSearchFilters();
+    initializeContactForm();
+    initializeCardAnimations();
+    initializeSmoothScrolling();
+    initializeAccessibility();
+    handleImageErrors();
+    
+    // Initialize chat bot
+    window.chatBot = new ChatBot();
+    
+    // Add touch event listeners for mobile devices
+    const chatBotToggle = document.getElementById('chatBotToggle');
+    if (chatBotToggle) {
+        chatBotToggle.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (window.chatBot) {
+                window.chatBot.trigger();
+            }
+        });
+    }
+});
+
+// Export chat bot for global access
+window.ChatBot = ChatBot;

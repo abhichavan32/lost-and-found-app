@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Marketplace - Lost & Found{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="fas fa-store me-2"></i>Student Marketplace</h1>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('sell_item') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Sell Item
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <!-- Filters -->
+        <div class="col-md-3 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Filters</h5>
+                    <form method="GET">
+                        <div class="mb-3">
+                            <label class="form-label">Type</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="type" value="book" id="type-book">
+                                <label class="form-check-label" for="type-book">Books</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="type" value="notes" id="type-notes">
+                                <label class="form-check-label" for="type-notes">Notes</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Subject</label>
+                            <input type="text" class="form-control" name="subject" placeholder="Search by subject...">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Grid -->
+        <div class="col-md-9">
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                {% for item in items %}
+                <div class="col">
+                    <div class="card h-100">
+                        {% if item.image %}
+                        <img src="{{ url_for('static', filename='uploads/' + item.image) }}" class="card-img-top" alt="{{ item.title }}">
+                        {% else %}
+                        <div class="card-img-top bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <i class="fas {% if item.type == 'book' %}fa-book{% else %}fa-file-alt{% endif %} fa-3x"></i>
+                        </div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ item.title }}</h5>
+                            <p class="card-text text-muted">
+                                <small>
+                                    <i class="fas {% if item.type == 'book' %}fa-book{% else %}fa-file-alt{% endif %} me-1"></i>
+                                    {{ item.type|title }}
+                                    {% if item.subject %}
+                                    · {{ item.subject }}
+                                    {% endif %}
+                                </small>
+                            </p>
+                            <p class="card-text">{{ item.description|truncate(100) }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="h5 mb-0">${{ "%.2f"|format(item.price) }}</span>
+                                <a href="{{ url_for('marketplace_item', item_id=item.id) }}" class="btn btn-outline-primary">
+                                    View Details
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-footer text-muted">
+                            <small>Listed {{ item.created_at|timeago }}</small>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12 text-center py-5">
+                    <h3>No items available</h3>
+                    <p class="text-muted">Be the first to list an item!</p>
+                    {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('sell_item') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Sell Item
+                    </a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
