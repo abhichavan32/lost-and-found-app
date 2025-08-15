@@ -2,8 +2,10 @@ from flask import Flask
 
 app = Flask(__name__)
 
-@app.route("/")
+@app.route('/')
 def home():
     return "Hello from Flask on Vercel!"
 
-# Add your actual Lost & Found routes below
+# For local testing
+if __name__ == "__main__":
+    app.run(debug=True)
