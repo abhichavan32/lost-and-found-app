@@ -12,3 +12,6 @@ flask-migrate==4.0.5
 sqlalchemy==2.0.35
 alembic==1.12.1
 gunicorn==22.0.0
+pymysql
+
+
