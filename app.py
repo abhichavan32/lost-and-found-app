@@ -37,7 +37,6 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_recycle": 300, "pool_pre_ping":
 db.init_app(app)
 migrate = Migrate(app, db)
 
-# Ensure tables exist at startup
 with app.app_context():
     try:
         db.create_all()
@@ -211,6 +210,169 @@ def index():
     recent_lost = Item.query.filter_by(type="lost", status="active").order_by(Item.date_posted.desc()).limit(6).all()
     recent_found = Item.query.filter_by(type="found", status="active").order_by(Item.date_posted.desc()).limit(6).all()
     return render_template("index.html", recent_lost=recent_lost, recent_found=recent_found)
+
+@app.route("/item/new", methods=["GET", "POST"])
+@login_required
+def new_item():
+    if request.method == "POST":
+        title = request.form.get("title")
+        type_ = request.form.get("type")
+        location = request.form.get("location")
+        description = request.form.get("description")
+        category = request.form.get("category")
+        file = request.files.get("image")
+
+        if not title or not type_ or not location:
+            flash("Title, type, and location are required.", "error")
+            return redirect(request.url)
+
+        filename = None
+        if file and allowed_file(file.filename):
+            filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
+            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+
+        item = Item(
+            title=title,
+            type=type_,
+            location=location,
+            description=description,
+            category=category,
+            image_filename=filename,
+            user_id=current_user.id,
+            item_id=generate_item_id(),
+            status="active",
+            date_posted=datetime.utcnow(),
+        )
+
+        try:
+            db.session.add(item)
+            db.session.commit()
+            if type_ == "lost":
+                create_notification_for_lost_item(item)
+            flash("Item posted successfully!", "success")
+            return redirect(url_for("dashboard"))
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error posting item: {e}")
+            flash("Failed to post item. Try again.", "error")
+
+    return render_template("item_form.html", categories=CATEGORIES)
+
+@app.route("/item/<int:item_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_item(item_id):
+    item = Item.query.get_or_404(item_id)
+    if item.user_id != current_user.id:
+        flash("You cannot edit this item.", "error")
+        return redirect(url_for("dashboard"))
+
+    if request.method == "POST":
+        item.title = request.form.get("title")
+        item.type = request.form.get("type")
+        item.location = request.form.get("location")
+        item.description = request.form.get("description")
+        item.category = request.form.get("category")
+        file = request.files.get("image")
+
+        if file and allowed_file(file.filename):
+            filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
+            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+            item.image_filename = filename
+
+        try:
+            db.session.commit()
+            flash("Item updated successfully!", "success")
+            return redirect(url_for("dashboard"))
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error updating item: {e}")
+            flash("Failed to update item. Try again.", "error")
+
+    return render_template("item_form.html", item=item, categories=CATEGORIES)
+
+@app.route("/item/<int:item_id>/delete", methods=["POST"])
+@login_required
+def delete_item(item_id):
+    item = Item.query.get_or_404(item_id)
+    if item.user_id != current_user.id:
+        flash("You cannot delete this item.", "error")
+        return redirect(url_for("dashboard"))
+    try:
+        db.session.delete(item)
+        db.session.commit()
+        flash("Item deleted successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error deleting item: {e}")
+        flash("Failed to delete item.", "error")
+    return redirect(url_for("dashboard"))
+
+# ---------------------------------------------------------------------------
+# Marketplace routes
+# ---------------------------------------------------------------------------
+@app.route("/marketplace")
+def marketplace():
+    items = MarketItem.query.filter_by(status="active").order_by(MarketItem.date_posted.desc()).all()
+    return render_template("marketplace.html", items=items)
+
+@app.route("/marketplace/new", methods=["GET", "POST"])
+@login_required
+def new_market_item():
+    if request.method == "POST":
+        title = request.form.get("title")
+        price = float(request.form.get("price") or 0)
+        description = request.form.get("description")
+        file = request.files.get("image")
+
+        filename = None
+        if file and allowed_file(file.filename):
+            filename = secure_filename(f"{uuid.uuid4().hex}_{file.filename}")
+            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+
+        item = MarketItem(
+            title=title,
+            description=description,
+            price=price,
+            image_filename=filename,
+            user_id=current_user.id,
+            status="active",
+            date_posted=datetime.utcnow(),
+        )
+        try:
+            db.session.add(item)
+            db.session.commit()
+            flash("Marketplace item posted!", "success")
+            return redirect(url_for("marketplace"))
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error posting market item: {e}")
+            flash("Failed to post item.", "error")
+    return render_template("market_item_form.html")
+
+@app.route("/marketplace/<int:item_id>/buy", methods=["POST"])
+@login_required
+def buy_market_item(item_id):
+    item = MarketItem.query.get_or_404(item_id)
+    if item.user_id == current_user.id:
+        flash("You cannot buy your own item.", "error")
+        return redirect(url_for("marketplace"))
+    try:
+        order = Order(
+            item_id=item.id,
+            buyer_id=current_user.id,
+            seller_id=item.user_id,
+            amount=item.price,
+            date_ordered=datetime.utcnow(),
+        )
+        db.session.add(order)
+        item.status = "sold"
+        db.session.commit()
+        flash("Purchase successful!", "success")
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error buying item: {e}")
+        flash("Purchase failed. Try again.", "error")
+    return redirect(url_for("marketplace"))
 
 # ---------------------------------------------------------------------------
 # Entrypoint
