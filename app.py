@@ -10,22 +10,24 @@ from werkzeug.utils import secure_filename
 from flask_migrate import Migrate
 from sqlalchemy import or_
 
-# -----------------------------------------------------------------------------
-# App & Logging
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# App setup
+# ---------------------------------------------------------------------------
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
 
 logging.basicConfig(level=logging.INFO)
 app.logger.setLevel(logging.INFO)
 
-# -----------------------------------------------------------------------------
-# Database configuration (PostgreSQL-friendly for Render)
-# -----------------------------------------------------------------------------
-from models import db  # db = SQLAlchemy() inside models.py
+# ---------------------------------------------------------------------------
+# Database configuration
+# ---------------------------------------------------------------------------
+from models import db, User, Item, Notification, MarketItem, Order, Payment
 
-db_url = os.environ.get("DATABASE_URL", "sqlite:///lost_and_found.db")
-if db_url.startswith("postgres://"):
+db_url = os.environ.get("DATABASE_URL")
+if not db_url:
+    db_url = "sqlite:///lost_and_found.db"  # fallback for local dev
+elif db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
@@ -35,14 +37,16 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_recycle": 300, "pool_pre_ping":
 db.init_app(app)
 migrate = Migrate(app, db)
 
-# -----------------------------------------------------------------------------
-# Models
-# -----------------------------------------------------------------------------
-from models import User, Item, Notification, MarketItem, Order, Payment
+# Ensure tables exist at startup
+with app.app_context():
+    try:
+        db.create_all()
+    except Exception as e:
+        app.logger.error(f"Database initialization failed: {e}")
 
-# -----------------------------------------------------------------------------
-# Auth (Flask-Login)
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Flask-Login
+# ---------------------------------------------------------------------------
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
@@ -52,9 +56,9 @@ login_manager.login_message = "Please log in to access this page."
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # File uploads
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 UPLOAD_FOLDER = os.path.join("static", "uploads")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB
@@ -66,9 +70,9 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# -----------------------------------------------------------------------------
-# Constants
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Constants / helpers
+# ---------------------------------------------------------------------------
 CATEGORIES = [
     "Electronics", "Clothing", "Jewelry", "Keys", "Documents",
     "Bags", "Books", "Pets", "Vehicles", "Sports Equipment", "Other",
@@ -93,9 +97,9 @@ def create_notification_for_lost_item(item: Item) -> None:
     except Exception as e:
         app.logger.error(f"Error creating notifications: {e}")
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # Auth routes
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -149,7 +153,6 @@ def login():
             return render_template("auth/login.html")
 
         user = User.query.filter_by(username=username).first()
-
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
             next_page = request.args.get("next")
@@ -166,9 +169,9 @@ def logout():
     flash("You have been logged out successfully.", "success")
     return redirect(url_for("index"))
 
-# -----------------------------------------------------------------------------
-# Dashboard / Notifications
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Dashboard & notifications
+# ---------------------------------------------------------------------------
 @app.route("/dashboard")
 @login_required
 def dashboard():
@@ -176,11 +179,7 @@ def dashboard():
     lost_items = Item.query.filter_by(user_id=current_user.id, type="lost").all()
     found_items = Item.query.filter_by(user_id=current_user.id, type="found").all()
     unread_notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
-    recent_notifications = (
-        Notification.query.filter_by(user_id=current_user.id)
-        .order_by(Notification.created_at.desc())
-        .limit(5).all()
-    )
+    recent_notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.created_at.desc()).limit(5).all()
     return render_template(
         "dashboard.html",
         user_items=user_items,
@@ -193,10 +192,7 @@ def dashboard():
 @app.route("/notifications")
 @login_required
 def notifications():
-    notifications = (
-        Notification.query.filter_by(user_id=current_user.id)
-        .order_by(Notification.created_at.desc()).all()
-    )
+    notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.created_at.desc()).all()
     return render_template("notifications.html", notifications=notifications)
 
 @app.route("/notifications/<int:notification_id>/mark_read")
@@ -207,27 +203,18 @@ def mark_notification_read(notification_id: int):
     db.session.commit()
     return redirect(url_for("notifications"))
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # Main / Item routes
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 @app.route("/")
 def index():
-    recent_lost = (
-        Item.query.filter_by(type="lost", status="active")
-        .order_by(Item.date_posted.desc()).limit(6).all()
-    )
-    recent_found = (
-        Item.query.filter_by(type="found", status="active")
-        .order_by(Item.date_posted.desc()).limit(6).all()
-    )
+    recent_lost = Item.query.filter_by(type="lost", status="active").order_by(Item.date_posted.desc()).limit(6).all()
+    recent_found = Item.query.filter_by(type="found", status="active").order_by(Item.date_posted.desc()).limit(6).all()
     return render_template("index.html", recent_lost=recent_lost, recent_found=recent_found)
 
-# Post, edit, delete, browse, marketplace routes...
-# Copy all the routes you had above here, unchanged, since they are already PostgreSQL-ready
-
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # Entrypoint
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     debug = os.environ.get("FLASK_DEBUG") == "1"
