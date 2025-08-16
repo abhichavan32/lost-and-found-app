@@ -42,7 +42,8 @@ if db_url.startswith("mysql://") or db_url.startswith("mysql+pymysql://"):
     except Exception as e:
         app.logger.warning(f"PyMySQL not available; MySQL may fail: {e}")
 
-app.config["SQLALCHEMY_DATABASE_URI"] ='mysql+pymysql://admin:password@db.example.onrender.com:3306/lost_and_found'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{os.environ['MYSQL_USER']}:{os.environ['MYSQL_PASSWORD']}@{os.environ['MYSQL_HOST']}:{os.environ['MYSQL_PORT']}/{os.environ['MYSQL_DATABASE']}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
